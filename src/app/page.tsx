@@ -46,10 +46,11 @@ function useCatalogData() {
 }
 
 // ===== SCROLL REVEAL HOOK =====
-function useReveal() {
+function useReveal(ready: boolean) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!ready) return;
     const el = ref.current;
     if (!el) return;
 
@@ -68,7 +69,7 @@ function useReveal() {
     children.forEach((child) => observer.observe(child));
 
     return () => observer.disconnect();
-  }, []);
+  }, [ready]);
 
   return ref;
 }
@@ -76,7 +77,7 @@ function useReveal() {
 // ===== COMPONENT =====
 export default function CatalogPage() {
   const { packages, locations, loading, error } = useCatalogData();
-  const mainRef = useReveal();
+  const mainRef = useReveal(!loading && !error);
 
   if (loading) {
     return (
