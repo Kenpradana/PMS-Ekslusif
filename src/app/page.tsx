@@ -13,21 +13,36 @@ function useCatalogData() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [locations, setLocations] = useState<BurialLocation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     async function load() {
-      const [pkgRes, locRes] = await Promise.all([
-        supabase.from('packages').select('*').order('sort_order', { ascending: true }),
-        supabase.from('burial_locations').select('*').order('sort_order', { ascending: true }),
-      ]);
-      setPackages((pkgRes.data as Package[]) ?? []);
-      setLocations((locRes.data as BurialLocation[]) ?? []);
-      setLoading(false);
+      try {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!url || !key) {
+          setError('Environment variable tidak ditemukan');
+          return;
+        }
+
+        const [pkgRes, locRes] = await Promise.all([
+          supabase.from('packages').select('*').order('sort_order', { ascending: true }),
+          supabase.from('burial_locations').select('*').order('sort_order', { ascending: true }),
+        ]);
+        setPackages((pkgRes.data as Package[]) ?? []);
+        setLocations((locRes.data as BurialLocation[]) ?? []);
+      } catch (err) {
+        console.error(err);
+        setError('Gagal memuat data: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, []);
 
-  return { packages, locations, loading };
+  return { packages, locations, loading, error };
 }
 
 // ===== SCROLL REVEAL HOOK =====
@@ -60,15 +75,35 @@ function useReveal() {
 
 // ===== COMPONENT =====
 export default function CatalogPage() {
-  const { packages, locations, loading } = useCatalogData();
+  const { packages, locations, loading, error } = useCatalogData();
   const mainRef = useReveal();
 
   if (loading) {
     return (
       <div className="relative z-[2] min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <i className="fas fa-circle-notch fa-spin text-mute-500 text-2xl mb-4 block" />
-          <p className="text-mute-500 text-sm tracking-wider">Memuat...</p>
+          <div className="w-10 h-10 border-2 border-mute-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-mute-300 text-sm">Memuat data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="relative z-[2] min-h-screen flex items-center justify-center px-6">
+        <div className="text-center max-w-md">
+          <div className="w-12 h-12 border border-dark-500 rounded-full flex items-center justify-center mx-auto mb-5 text-mute-500 text-lg">
+            <i className="fas fa-exclamation-triangle" />
+          </div>
+          <h2 className="font-serif text-xl text-white mb-3">Gagal Memuat Data</h2>
+          <p className="text-sm text-mute-400 leading-relaxed mb-6">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-white text-[#0a0a0a] rounded-lg text-[12px] font-semibold tracking-[1px] uppercase"
+          >
+            Coba Lagi
+          </button>
         </div>
       </div>
     );
