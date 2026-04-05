@@ -1,65 +1,370 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useEffect, useRef } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useState } from 'react';
+import { formatRp } from '@/lib/utils';
+import type { Package, BurialLocation } from '@/lib/data';
+import { supabase } from '@/lib/supabase';
+
+// ===== DATA (fetch di client karena butuh intersection observer) =====
+function useCatalogData() {
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [locations, setLocations] = useState<BurialLocation[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const [pkgRes, locRes] = await Promise.all([
+        supabase.from('packages').select('*').order('sort_order', { ascending: true }),
+        supabase.from('burial_locations').select('*').order('sort_order', { ascending: true }),
+      ]);
+      setPackages((pkgRes.data as Package[]) ?? []);
+      setLocations((locRes.data as BurialLocation[]) ?? []);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  return { packages, locations, loading };
+}
+
+// ===== SCROLL REVEAL HOOK =====
+function useReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -60px 0px' }
+    );
+
+    const children = el.querySelectorAll('.reveal');
+    children.forEach((child) => observer.observe(child));
+
+    return () => observer.disconnect();
+  }, []);
+
+  return ref;
+}
+
+// ===== COMPONENT =====
+export default function CatalogPage() {
+  const { packages, locations, loading } = useCatalogData();
+  const mainRef = useReveal();
+
+  if (loading) {
+    return (
+      <div className="relative z-[2] min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <i className="fas fa-circle-notch fa-spin text-mute-500 text-2xl mb-4 block" />
+          <p className="text-mute-500 text-sm tracking-wider">Memuat...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="relative z-[2]" ref={mainRef}>
+
+      {/* ===== NAVBAR ===== */}
+      <nav className="fixed top-0 left-0 w-full z-50 bg-dark/80 backdrop-blur-md border-b border-dark-400" id="navbar">
+        <div className="max-w-[960px] mx-auto px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3 group">
+            {/* === LOGO: ganti src kalau sudah punya file sendiri === */}
+            {/* Kalau pakai file: src="/logo.png" */}
+            {/* Kalau pakai icon dulu: */}
+            <Image src="/logo.png" alt="Logo" width={36} height={36} className="rounded-full" />
+            <span className="font-serif text-sm tracking-[2px] uppercase text-white">
+              The Grand
+            </span>
+          </Link>
+          <Link
+            href="/order"
+            className="px-5 py-2 border border-dark-500 rounded-lg text-[11px] tracking-[1.5px] uppercase text-mute-400 hover:border-mute-400 hover:text-white transition-all"
+          >
+            Pesan
+          </Link>
+        </div>
+      </nav>
+
+      {/* ===== HERO ===== */}
+      <section className="min-h-screen flex flex-col items-center justify-center text-center px-6 border-b border-dark-400 relative">
+        <div className="max-w-2xl">
+          <p className="hero-anim-1 text-[10px] tracking-[6px] uppercase text-mute-500 mb-6">
+            PMS Ekslusif Funeral Organizer Service
+          </p>
+          <h1 className="hero-anim-1 font-serif text-5xl sm:text-6xl md:text-7xl font-medium text-white leading-[1.1] mb-6">
+            The<br />Grand
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <div className="hero-anim-2 h-px bg-mute-500 mx-auto mb-6" />
+          <p className="hero-anim-3 text-mute-400 text-sm sm:text-base leading-relaxed max-w-md mx-auto mb-10">
+            Mengantar ke peristirahatan terakhir dengan layanan yang penuh
+            penghormatan, tenang, dan profesional.
+          </p>
+          <Link
+            href="/order"
+            className="hero-anim-4 inline-flex items-center gap-3 px-10 py-4 bg-white text-[#0a0a0a] rounded-lg text-[13px] font-semibold tracking-[1px] uppercase hover:bg-[#e0e0e0] hover:shadow-[0_4px_20px_rgba(255,255,255,0.1)] transition-all"
+          > 
+            Mulai Pesan Sekarang
+            <i className="fas fa-arrow-right text-xs" />
+          </Link>
+        </div>
+
+        <div className="hero-anim-5 absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+          <span className="text-[9px] tracking-[3px] uppercase text-mute-500">Scroll</span>
+          <div className="w-px h-8 bg-dark-500 relative overflow-hidden">
+            <div className="w-full h-3 bg-mute-400 scroll-dot" />
+          </div>
+        </div>
+      </section>
+
+      {/* ===== ABOUT ===== */}
+      <section className="py-24 px-6 border-b border-dark-400">
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
+          {[
+            { icon: 'fas fa-hands-praying', title: 'Penghormatan', desc: 'Setiap detail kami tangani dengan penuh rasa hormat terhadap almarhum/ah dan keluarga.' },
+            { icon: 'fas fa-shield-halved', title: 'Profesional', desc: 'Tim berpengalaman yang siap mengurus seluruh kebutuhan dari awal hingga selesai.' },
+            { icon: 'fas fa-heart', title: 'Peduli', desc: 'Kami memahami bahwa ini adalah momen sulit. Kami ada untuk membantu meringankan beban.' },
+          ].map((item, i) => (
+            <div key={item.title} className={`reveal reveal-delay-${i + 1} text-center`}>
+              <div className="w-12 h-12 border border-dark-500 rounded-full flex items-center justify-center mx-auto mb-5 text-mute-400">
+                <i className={item.icon} />
+              </div>
+              <h3 className="font-serif text-lg text-white mb-3">{item.title}</h3>
+              <p className="text-[13px] text-mute-500 leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ===== PACKAGES ===== */}
+      <section className="py-24 px-6 border-b border-dark-400">
+        <div className="max-w-[960px] mx-auto">
+          <div className="text-center mb-14">
+            <p className="reveal text-[10px] tracking-[4px] uppercase text-mute-500 mb-3">
+              Pilihan Paket
+            </p>
+            <h2 className="reveal reveal-delay-1 font-serif text-3xl sm:text-4xl font-medium text-white mb-4">
+              Layanan Kami
+            </h2>
+            <p className="reveal reveal-delay-2 text-sm text-mute-400 max-w-md mx-auto leading-relaxed">
+              Empat pilihan paket yang dirancang untuk berbagai kebutuhan,
+              dari yang sederhana hingga pelayanan penuh VIP.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            {packages.map((pkg, i) => (
+              <div
+                key={pkg.id}
+                className={`reveal reveal-delay-${Math.min(i + 1, 5)} card-shine border border-dark-400 rounded-xl overflow-hidden bg-dark-200 hover:border-dark-500 hover:bg-dark-300 transition-all duration-500 group`}
+              >
+                {/* Foto */}
+                <div className="relative h-[260px] sm:h-[300px] overflow-hidden">
+                  {pkg.image_url ? (
+                    <Image
+                      src={pkg.image_url}
+                      alt={pkg.name}
+                      fill
+                      className="object-cover transition-all duration-700 group-hover:scale-105 grayscale-[30%] group-hover:grayscale-0"
+                      sizes="(max-width: 960px) 100vw, 960px"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-dark-300 flex items-center justify-center">
+                      <i className="fas fa-image text-3xl text-dark-500" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-dark-200 via-dark-200/20 to-transparent" />
+
+                  <div className="absolute top-4 left-4">
+                    <span className="text-[9px] tracking-[2px] uppercase px-3 py-1.5 rounded-md bg-black/60 backdrop-blur-sm border border-white/10 text-mute-200">
+                      {pkg.badge}
+                    </span>
+                  </div>
+
+                  <div className="absolute bottom-4 right-4">
+                    <span className="font-serif text-2xl sm:text-3xl font-semibold text-white drop-shadow-lg">
+                      {formatRp(pkg.price)}
+                    </span>
+                  </div>
+
+                  <div className="absolute bottom-4 left-4">
+                    <h3 className="font-serif text-xl sm:text-2xl font-medium text-white drop-shadow-lg">
+                      {pkg.name}
+                    </h3>
+                  </div>
+                </div>
+
+                {/* Detail */}
+                <div className="p-7">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-0 mb-6">
+                    <ul className="space-y-2.5">
+                      {pkg.features.slice(0, Math.ceil(pkg.features.length / 2)).map((f, j) => (
+                        <li key={j} className="flex items-start gap-2.5 text-[13px] text-mute-300 leading-snug">
+                          <i className="fas fa-circle text-[6px] mt-[6px] flex-shrink-0 text-mute-500" />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <ul className="space-y-2.5">
+                      {pkg.features.slice(Math.ceil(pkg.features.length / 2)).map((f, j) => (
+                        <li key={j} className="flex items-start gap-2.5 text-[13px] text-mute-300 leading-snug">
+                          <i className="fas fa-circle text-[6px] mt-[6px] flex-shrink-0 text-mute-500" />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-5 border-t border-dark-400">
+                    <p className="text-[11px] text-mute-500">
+                      Rumah duka: <span className="text-mute-300">{formatRp(pkg.day_cost)}/hari</span>
+                    </p>
+                    <Link
+                      href="/order"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-[#0a0a0a] rounded-lg text-[12px] font-semibold tracking-[1px] uppercase hover:bg-[#e0e0e0] transition-all"
+                    >
+                      Pilih
+                      <i className="fas fa-arrow-right text-[10px]" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== LOCATIONS ===== */}
+      <section className="py-24 px-6 border-b border-dark-400">
+        <div className="max-w-[960px] mx-auto">
+          <div className="text-center mb-14">
+            <p className="reveal text-[10px] tracking-[4px] uppercase text-mute-500 mb-3">
+              Lokasi Pemakaman
+            </p>
+            <h2 className="reveal reveal-delay-1 font-serif text-3xl sm:text-4xl font-medium text-white mb-4">
+              Rekomendasi Kami
+            </h2>
+            <p className="reveal reveal-delay-2 text-sm text-mute-400 max-w-md mx-auto leading-relaxed">
+              Lokasi pemakaman yang sering digunakan di daerah Solo, atau sampaikan
+              permintaan khusus dari keluarga.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {locations.map((loc, i) => (
+              <div
+                key={loc.id}
+                className={`reveal reveal-delay-${Math.min(i + 1, 5)} card-shine border border-dark-400 rounded-xl p-6 bg-dark-200 hover:border-dark-500 hover:bg-dark-300 transition-all duration-300`}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 border border-dark-500 rounded-full flex items-center justify-center text-mute-500 text-xs flex-shrink-0">
+                    <i className="fas fa-map-marker-alt" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-white">{loc.name}</h3>
+                    {loc.tag === 'Rekomendasi' && (
+                      <span className="text-[9px] tracking-[1px] uppercase text-mute-500">{loc.tag}</span>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-mute-500 leading-relaxed">{loc.address}</p>
+              </div>
+            ))}
+            <div className="reveal reveal-delay-3 border border-dashed border-dark-500 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-mute-500 transition-colors">
+              <div className="w-8 h-8 border border-dark-500 rounded-full flex items-center justify-center text-mute-500 text-xs mb-3">
+                <i className="fas fa-plus" />
+              </div>
+              <p className="text-sm text-mute-400">Lokasi Khusus</p>
+              <p className="text-[11px] text-mute-500 mt-1">Sesuai permintaan keluarga</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== PROCESS ===== */}
+      <section className="py-24 px-6 border-b border-dark-400">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="reveal text-[10px] tracking-[4px] uppercase text-mute-500 mb-3">
+              Alur Pemesanan
+            </p>
+            <h2 className="reveal reveal-delay-1 font-serif text-3xl sm:text-4xl font-medium text-white">
+              Lima Langkah Mudah
+            </h2>
+          </div>
+
+          <div className="space-y-0">
+            {[
+              { num: '01', title: 'Data Almarhum/ah', desc: 'Isi data identitas dan kontak penanggung jawab keluarga.' },
+              { num: '02', title: 'Pilih Paket', desc: 'Tentukan paket layanan yang sesuai dengan kebutuhan.' },
+              { num: '03', title: 'Lama di Rumah Duka', desc: 'Pilih durasi penggunaan rumah duka, 1 sampai 7 hari.' },
+              { num: '04', title: 'Lokasi Pemakaman', desc: 'Gunakan rekomendasi kami atau sampaikan permintaan khusus.' },
+              { num: '05', title: 'Konfirmasi', desc: 'Periksa ringkasan dan ajukan pesanan. Tim kami akan segera menghubungi.' },
+            ].map((step, i) => (
+              <div key={step.num} className={`reveal reveal-delay-${Math.min(i + 1, 5)} flex gap-6`}>
+                <div className="flex flex-col items-center">
+                  <span className="step-num font-serif text-lg text-mute-500">{step.num}</span>
+                  {i < 4 && <div className="w-px flex-1 bg-dark-400 mt-2" />}
+                </div>
+                <div className="pb-10">
+                  <h3 className="text-sm font-medium text-white mb-1">{step.title}</h3>
+                  <p className="text-[13px] text-mute-500 leading-relaxed">{step.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== CTA ===== */}
+      <section className="py-24 px-6">
+        <div className="max-w-lg mx-auto text-center">
+          <div className="reveal w-12 h-12 border border-mute-400 rounded-full flex items-center justify-center mx-auto mb-6 text-mute-300 text-sm">
+            <i className="fas fa-cross" />
+          </div>
+          <h2 className="reveal reveal-delay-1 font-serif text-3xl font-medium text-white mb-4">
+            Siap Menghubungi Kami
+          </h2>
+          <p className="reveal reveal-delay-2 text-sm text-mute-400 leading-relaxed mb-8">
+            Kami siap membantu keluarga dalam masa sulit ini.
+            Ajukan pesanan dan tim kami akan merespons dalam 1x24 jam.
+          </p>
+          <Link
+            href="/order"
+            className="reveal reveal-delay-3 inline-flex items-center gap-3 px-10 py-4 bg-white text-[#0a0a0a] rounded-lg text-[13px] font-semibold tracking-[1px] uppercase hover:bg-[#e0e0e0] hover:shadow-[0_4px_20px_rgba(255,255,255,0.1)] transition-all"
+          >
+            Ajukan Pesanan Sekarang
+            <i className="fas fa-arrow-right text-xs" />
+          </Link>
+        </div>
+      </section>
+
+      {/* ===== FOOTER ===== */}
+      <footer className="border-t border-dark-400 py-10 px-6">
+        <div className="max-w-[960px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Image src="/logo.png" alt="Logo" width={32} height={32} className="rounded-full" />
+            <span className="font-serif text-sm tracking-[2px] uppercase text-mute-500">
+              The Grand
+            </span>
+          </div>
+          <p className="text-[11px] text-mute-500 tracking-[1px]">
+            Mengantar dengan penghormatan terakhir
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </footer>
     </div>
   );
 }
