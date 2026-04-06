@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { formatRp } from '@/lib/utils';
 import { getPackages, getLocations, getAdditions, insertOrder, type Package, type BurialLocation, type Addition } from '@/lib/data';
 import Stepper from '@/components/Stepper';
@@ -192,27 +193,40 @@ export default function OrderPage() {
   return (
     <div className="relative z-[2] max-w-[960px] mx-auto px-6">
       <header className="pt-6 pb-5 border-b border-dark-400 mb-10">
-        <div className="relative">
-          <Link
-            href="/"
-            className="absolute left-0 top-0 inline-flex items-center gap-2 text-[11px] tracking-[2px] uppercase text-mute-500 hover:text-mute-300 transition-colors"
-          >
-            <i className="fas fa-arrow-left text-[10px]" />
-            Kembali ke Katalog
-          </Link>
-          <div className="flex flex-col items-center gap-3">
-            <div className="inline-flex items-center gap-3.5">
-              <div className="w-10 h-10 border border-mute-400 rounded-full flex items-center justify-center text-mute-300 text-sm">
-                <i className="fas fa-cross" />
-              </div>
-              <span className="font-serif text-[26px] font-medium tracking-[3px] uppercase text-white">
-                Eternal Rest
+        <div className="grid grid-cols-3 items-center">
+          {/* Kiri */}
+          <div>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] tracking-[1.5px] sm:tracking-[2px] uppercase text-mute-500 hover:text-mute-300 transition-colors"
+            >
+              <i className="fas fa-arrow-left text-[9px] sm:text-[10px]" />
+              <span className="hidden sm:inline">Kembali ke Katalog</span>
+              <span className="sm:hidden">Kembali</span>
+            </Link>
+          </div>
+
+          {/* Tengah */}
+          <div className="flex flex-col items-center">
+            <div className="inline-flex items-center gap-3 sm:gap-3.5">
+              <Image
+                src="/logo.png"
+                alt="Logo"
+                width={40}
+                height={40}
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover"
+              />
+              <span className="font-serif text-[22px] sm:text-[26px] font-medium tracking-[3px] uppercase text-white whitespace-nowrap">
+                The Grand
               </span>
             </div>
-            <p className="text-[11px] tracking-[5px] uppercase text-mute-500">
-              Funeral Organizer Service
+            <p className="text-[10px] sm:text-[11px] tracking-[4px] sm:tracking-[5px] uppercase text-mute-500 whitespace-nowrap mt-1">
+              PMS Ekslusif Funeral Organizer Service
             </p>
           </div>
+
+          {/* Kanan */}
+          <div />
         </div>
       </header>
 

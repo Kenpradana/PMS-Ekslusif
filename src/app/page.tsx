@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { formatRp } from '@/lib/utils';
 import type { Package, BurialLocation } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
+import PackageModal from '@/components/PackageModal';
 
 // ===== DATA (fetch di client karena butuh intersection observer) =====
 function useCatalogData() {
@@ -78,6 +79,7 @@ function useReveal(ready: boolean) {
 export default function CatalogPage() {
   const { packages, locations, loading, error } = useCatalogData();
   const mainRef = useReveal(!loading && !error);
+  const [previewPkg, setPreviewPkg] = useState<Package | null>(null);
 
   if (loading) {
     return (
@@ -223,10 +225,19 @@ export default function CatalogPage() {
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-dark-200 via-dark-200/20 to-transparent" />
 
-                  <div className="absolute top-4 left-4">
+                  <div className="absolute top-4 left-4 flex items-center gap-2">
                     <span className="text-[9px] tracking-[2px] uppercase px-3 py-1.5 rounded-md bg-black/60 backdrop-blur-sm border border-white/10 text-mute-200">
                       {pkg.badge}
                     </span>
+                    {pkg.image_url && (
+                      <button
+                        onClick={() => setPreviewPkg(pkg)}
+                        className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center text-mute-200 hover:text-white hover:border-white/30 transition-all"
+                        title="Lihat dekorasi"
+                      >
+                        <i className="fas fa-expand text-[10px]" />
+                      </button>
+                    )}
                   </div>
 
                   <div className="absolute bottom-4 right-4">
@@ -386,6 +397,12 @@ export default function CatalogPage() {
           </Link>
         </div>
       </section>
+      
+            {previewPkg && (
+        <PackageModal pkg={previewPkg} onClose={() => setPreviewPkg(null)} />
+      )}
+
+    
 
       {/* ===== FOOTER ===== */}
       <footer className="border-t border-dark-400 py-10 px-6">
